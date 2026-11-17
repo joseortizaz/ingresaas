@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-route
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useRef } from "react";
-import { LayoutDashboard, FileText, Users, BookOpen, Truck, Receipt, Settings, ShieldCheck, BarChart3, LogOut, Wallet, ListChecks, Crown, Building2, FileSpreadsheet, Repeat, Package, Briefcase, TrendingDown, CreditCard, Sparkles, Plug, PieChart, AlertCircle, KeyRound } from "lucide-react";
+import { LayoutDashboard, FileText, Users, BookOpen, Truck, Receipt, Settings, ShieldCheck, BarChart3, LogOut, Wallet, ListChecks, Crown, Building2, FileSpreadsheet, Repeat, Package, Briefcase, TrendingDown, CreditCard, Sparkles, Plug, PieChart, AlertCircle, KeyRound, PackageCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ const NAV: Item[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/facturas", label: "Facturas", icon: FileText, roles: ["administrador", "agente_facturacion", "contador"] },
   { to: "/cotizaciones", label: "Cotizaciones", icon: FileSpreadsheet, roles: ["administrador", "agente_facturacion", "contador"] },
+  { to: "/conduces", label: "Conduces", icon: PackageCheck, roles: ["administrador", "agente_facturacion", "contador"] },
   { to: "/recurrentes", label: "Facturas Recurrentes", icon: Repeat, roles: ["administrador", "agente_facturacion"] },
   { to: "/cobros", label: "Cobros", icon: Wallet, roles: ["administrador", "agente_facturacion"] },
   { to: "/cuentas-por-cobrar", label: "Cuentas por Cobrar", icon: AlertCircle, roles: ["administrador", "contador"] },

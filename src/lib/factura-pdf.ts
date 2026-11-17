@@ -5,6 +5,8 @@ export interface FacturaPdfLinea {
   cantidad: number;
   precio: number;
   subtotal: number;
+  // Solo conduces: unidad de medida que se muestra junto a la cantidad.
+  unidad?: string | null;
 }
 
 export interface FacturaPdfData {
@@ -50,6 +52,17 @@ export interface FacturaPdfData {
   total: number;
   montoPagado?: number;
   saldoPendiente?: number;
+
+  // ── Conduces (notas de entrega) ──
+  // Oculta precios, subtotal y totales: solo descripción y cantidad.
+  ocultarPrecios?: boolean;
+  // Datos de entrega (dirección, transportista, vehículo…) bajo la tabla.
+  datosEntrega?: Array<{ label: string; value: string }>;
+  notas?: string | null;
+  // Recuadros de firma al final (p. ej. "Despachado por", "Recibido por").
+  firmas?: string[];
+  // Texto del pie (por defecto "Gracias por su preferencia.").
+  piePagina?: string;
 }
 
 const RD = (n: number) =>
@@ -191,32 +204,93 @@ export async function generateFacturaPdf(d: FacturaPdfData): Promise<jsPDF> {
   const colPrec = left + 400;
   const colSub = right - 12;
 
-  doc.setFillColor(241, 245, 249);
-  doc.rect(left, y, right - left, 28, "F");
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(20, 28, 56);
-  doc.text("Descripción", colDesc, y + 18);
-  doc.text("Cantidad", colCant, y + 18, { align: "right" });
-  doc.text("Precio Unit.", colPrec, y + 18, { align: "right" });
-  doc.text("Subtotal", colSub, y + 18, { align: "right" });
-  y += 36;
+  const sinPrecios = !!d.ocultarPrecios;
+  const colCantX = sinPrecios ? colSub : colCant;
+  const pageH = doc.internal.pageSize.getHeight();
+  const encabezadoTabla = () => {
+    doc.setFillColor(241, 245, 249);
+    doc.rect(left, y, right - left, 28, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(20, 28, 56);
+    doc.text("Descripción", colDesc, y + 18);
+    doc.text("Cantidad", colCantX, y + 18, { align: "right" });
+    if (!sinPrecios) {
+      doc.text("Precio Unit.", colPrec, y + 18, { align: "right" });
+      doc.text("Subtotal", colSub, y + 18, { align: "right" });
+    }
+    y += 36;
+  };
+  encabezadoTabla();
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(20);
   for (const ln of d.lineas) {
-    const descLines = doc.splitTextToSize(ln.descripcion || "—", 280);
+    const descLines = doc.splitTextToSize(ln.descripcion || "—", sinPrecios ? 360 : 280);
+    // Salto de página si la línea no cabe (deja espacio para el pie).
+    if (y + 14 * descLines.length > pageH - 110) {
+      doc.addPage();
+      y = 60;
+      encabezadoTabla();
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(20);
+    }
     doc.text(descLines, colDesc, y);
-    doc.text(String(ln.cantidad), colCant, y, { align: "right" });
-    doc.text(RD(ln.precio), colPrec, y, { align: "right" });
-    doc.text(RD(ln.subtotal), colSub, y, { align: "right" });
+    doc.text(sinPrecios && ln.unidad ? `${ln.cantidad} ${ln.unidad}` : String(ln.cantidad), colCantX, y, { align: "right" });
+    if (!sinPrecios) {
+      doc.text(RD(ln.precio), colPrec, y, { align: "right" });
+      doc.text(RD(ln.subtotal), colSub, y, { align: "right" });
+    }
     y += 14 * descLines.length + 8;
     doc.setDrawColor(235);
     doc.line(left, y - 4, right, y - 4);
   }
 
   y += 16;
+
+  // ----- Conduce: datos de entrega, notas y firmas -----
+  if (sinPrecios) {
+    const needed = 40 + (d.datosEntrega?.length ?? 0) * 16 + (d.notas ? 50 : 0) + (d.firmas?.length ? 110 : 0);
+    if (y + needed > pageH - 90) { doc.addPage(); y = 60; }
+    if (d.datosEntrega?.length) {
+      doc.setFontSize(10);
+      for (const it of d.datosEntrega) {
+        doc.setFont("helvetica", "bold"); doc.setTextColor(20, 28, 56);
+        doc.text(`${it.label}:`, left, y);
+        doc.setFont("helvetica", "normal"); doc.setTextColor(60);
+        const vl = doc.splitTextToSize(it.value, right - left - 130);
+        doc.text(vl, left + 130, y);
+        y += 16 * vl.length;
+      }
+      y += 6;
+    }
+    if (d.notas) {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(20, 28, 56);
+      doc.text("Notas:", left, y);
+      doc.setFont("helvetica", "normal"); doc.setTextColor(60);
+      const nl = doc.splitTextToSize(d.notas, right - left - 50);
+      doc.text(nl, left + 50, y);
+      y += 14 * nl.length + 8;
+    }
+    if (d.firmas?.length) {
+      y += 36;
+      const n = d.firmas.length;
+      const gap = 24;
+      const w = (right - left - gap * (n - 1)) / n;
+      d.firmas.forEach((label, i) => {
+        const x = left + i * (w + gap);
+        doc.setDrawColor(120);
+        doc.line(x, y, x + w, y);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(20, 28, 56);
+        doc.text(label, x + w / 2, y + 14, { align: "center" });
+        doc.setFont("helvetica", "normal"); doc.setTextColor(120);
+        doc.text("Nombre, cédula, firma y fecha", x + w / 2, y + 26, { align: "center" });
+      });
+      y += 40;
+    }
+  }
 
   // ----- Totales -----
   const totLabelX = left + 320;
@@ -233,32 +307,33 @@ export async function generateFacturaPdf(d: FacturaPdfData): Promise<jsPDF> {
     y += (opts?.size ?? 10) + 8;
   };
 
-  row("Subtotal:", RD(d.subtotal), { bold: true });
-  if (d.descuento && d.descuento > 0) row("Descuento:", "− " + RD(d.descuento));
-  if (d.itbis && d.itbis > 0) row("ITBIS:", RD(d.itbis));
+  if (!sinPrecios) {
+    row("Subtotal:", RD(d.subtotal), { bold: true });
+    if (d.descuento && d.descuento > 0) row("Descuento:", "− " + RD(d.descuento));
+    if (d.itbis && d.itbis > 0) row("ITBIS:", RD(d.itbis));
 
-  y += 4;
-  doc.setDrawColor(220);
-  doc.line(totLabelX, y - 8, right, y - 8);
-  y += 6;
+    y += 4;
+    doc.setDrawColor(220);
+    doc.line(totLabelX, y - 8, right, y - 8);
+    y += 6;
 
-  row("TOTAL:", RD(d.total), { bold: true, size: 14, color: [37, 99, 235] });
+    row("TOTAL:", RD(d.total), { bold: true, size: 14, color: [37, 99, 235] });
 
-  if (d.montoPagado && d.montoPagado > 0) {
-    row("Monto Pagado:", RD(d.montoPagado), { bold: true, color: [22, 163, 74] });
-  }
-  if (typeof d.saldoPendiente === "number") {
-    row("Saldo Pendiente:", RD(d.saldoPendiente), { bold: true });
+    if (d.montoPagado && d.montoPagado > 0) {
+      row("Monto Pagado:", RD(d.montoPagado), { bold: true, color: [22, 163, 74] });
+    }
+    if (typeof d.saldoPendiente === "number") {
+      row("Saldo Pendiente:", RD(d.saldoPendiente), { bold: true });
+    }
   }
 
   // ----- Footer -----
-  const pageH = doc.internal.pageSize.getHeight();
   doc.setDrawColor(230);
   doc.line(left, pageH - 70, right, pageH - 70);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(140);
-  doc.text("Gracias por su preferencia.", pageW / 2, pageH - 50, { align: "center" });
+  doc.text(d.piePagina || "Gracias por su preferencia.", pageW / 2, pageH - 50, { align: "center" });
   doc.setFontSize(9);
   doc.text("Generado por IngreSaaS - Software de Contabilidad", pageW / 2, pageH - 34, { align: "center" });
 
