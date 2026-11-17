@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileDown, Printer, Ban, Lock } from "lucide-react";
+import { ArrowLeft, FileDown, Printer, Ban, Lock, PackageCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { fmtDate, condicionFacturaTexto } from "@/lib/format";
@@ -16,6 +16,8 @@ export const Route = createFileRoute("/_authenticated/facturas/$id")({ component
 function VerFactura() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [creandoConduce, setCreandoConduce] = useState(false);
   const [motivoOpen, setMotivoOpen] = useState(false);
   const [accion, setAccion] = useState<"anular" | "cerrar" | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -106,6 +108,17 @@ function VerFactura() {
     qc.invalidateQueries({ queryKey: ["facturas"] });
   };
 
+  // Crea un conduce en borrador con el cliente y las líneas de esta factura y
+  // abre su edición (para ajustar cantidades de una entrega parcial, chofer, etc.).
+  const crearConduce = async () => {
+    setCreandoConduce(true);
+    const { data: conduceId, error } = await (supabase as any).rpc("crear_conduce_desde_factura", { _factura_id: id });
+    setCreandoConduce(false);
+    if (error) return toast.error(error.message);
+    toast.success("Conduce creado en borrador");
+    navigate({ to: "/conduces/nueva", search: { id: conduceId as string } });
+  };
+
   const puedeAnularOCerrar = f.estado !== "anulada" && f.estado !== "cerrada";
 
   return (
@@ -119,6 +132,11 @@ function VerFactura() {
           <Button size="sm" onClick={descargarPdf}>
             <FileDown className="h-4 w-4 mr-1" />Descargar PDF
           </Button>
+          {f.estado !== "anulada" && (
+            <Button size="sm" variant="outline" onClick={crearConduce} disabled={creandoConduce}>
+              <PackageCheck className="h-4 w-4 mr-1" />{creandoConduce ? "Creando…" : "Crear conduce"}
+            </Button>
+          )}
           {puedeAnularOCerrar && f.estado !== "pagada" && (
             <Button size="sm" variant="outline" className="text-muted-foreground" onClick={() => abrirMotivo("cerrar")}>
               <Lock className="h-4 w-4 mr-1" />Cerrar
