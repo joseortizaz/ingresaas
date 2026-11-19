@@ -99,8 +99,9 @@ function Facturas() {
         descuento: Number(f.descuento ?? 0),
         itbis: Number(f.itbis ?? 0),
         total: Number(f.total),
-        montoPagado: Number(f.monto_pagado ?? 0),
-        saldoPendiente: Number(f.total) - Number(f.monto_pagado ?? 0),
+        // Las facturas de contado nacen "pagada" sin cobro registrado (monto_pagado 0).
+        montoPagado: f.estado === "pagada" ? Number(f.total) : Number(f.monto_pagado ?? 0),
+        saldoPendiente: f.estado === "pagada" ? 0 : Math.max(Number(f.total) - Number(f.monto_pagado ?? 0), 0),
       });
       doc.save(`${f.ncf}.pdf`);
     } catch (e: any) {
@@ -128,7 +129,8 @@ function Facturas() {
       const t: any = (tenantRows ?? [])[0] ?? {};
       const c: any = (f as any).clientes ?? {};
       const total = Number(f.total ?? 0);
-      const pagado = Number(f.monto_pagado ?? 0);
+      // Las facturas de contado nacen "pagada" sin cobro registrado (monto_pagado 0).
+      const pagado = f.estado === "pagada" ? total : Number(f.monto_pagado ?? 0);
       await sendTransactionalEmail({
         templateName: "factura",
         recipientEmail: emailTo.trim(),

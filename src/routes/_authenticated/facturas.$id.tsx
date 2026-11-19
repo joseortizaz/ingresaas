@@ -77,8 +77,9 @@ function VerFactura() {
     descuento: Number(f.descuento ?? 0),
     itbis: Number(f.itbis ?? 0),
     total: Number(f.total),
-    montoPagado: Number(f.monto_pagado ?? 0),
-    saldoPendiente: Number(f.total) - Number(f.monto_pagado ?? 0),
+    // Las facturas de contado nacen "pagada" sin cobro registrado (monto_pagado 0).
+    montoPagado: f.estado === "pagada" ? Number(f.total) : Number(f.monto_pagado ?? 0),
+    saldoPendiente: f.estado === "pagada" ? 0 : Math.max(Number(f.total) - Number(f.monto_pagado ?? 0), 0),
   };
 
   const descargarPdf = async () => {
