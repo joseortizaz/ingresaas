@@ -180,8 +180,12 @@ export async function generateFacturaPdf(d: FacturaPdfData): Promise<jsPDF> {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(20);
-  doc.text(d.clienteNombre, left, y);
+  // El nombre puede ser largo: se ajusta al ancho de su columna para no
+  // montarse sobre el estado (columna derecha).
+  const nombreLineas: string[] = doc.splitTextToSize(d.clienteNombre || "—", midX - 10 - left);
+  doc.text(nombreLineas, left, y);
   doc.text(d.estado.toUpperCase(), midX + 20, y);
+  y += 15 * (nombreLineas.length - 1);
 
   y += 16;
   doc.setFont("helvetica", "normal");
