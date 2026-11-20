@@ -393,6 +393,144 @@ export type Database = {
           },
         ]
       }
+      conduce_lineas: {
+        Row: {
+          cantidad: number
+          conduce_id: string
+          descripcion: string
+          id: string
+          producto_id: string | null
+          tenant_id: string
+          unidad: string
+        }
+        Insert: {
+          cantidad?: number
+          conduce_id: string
+          descripcion: string
+          id?: string
+          producto_id?: string | null
+          tenant_id: string
+          unidad?: string
+        }
+        Update: {
+          cantidad?: number
+          conduce_id?: string
+          descripcion?: string
+          id?: string
+          producto_id?: string | null
+          tenant_id?: string
+          unidad?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduce_lineas_conduce_id_fkey"
+            columns: ["conduce_id"]
+            isOneToOne: false
+            referencedRelation: "conduces"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduce_lineas_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduce_lineas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conduces: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          direccion_entrega: string | null
+          estado: Database["public"]["Enums"]["estado_conduce"]
+          factura_id: string | null
+          fecha: string
+          fecha_entrega: string | null
+          id: string
+          motivo_anulacion: string | null
+          notas: string | null
+          numero: string
+          recibido_por: string | null
+          tenant_id: string
+          transportista: string | null
+          vehiculo: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          direccion_entrega?: string | null
+          estado?: Database["public"]["Enums"]["estado_conduce"]
+          factura_id?: string | null
+          fecha?: string
+          fecha_entrega?: string | null
+          id?: string
+          motivo_anulacion?: string | null
+          notas?: string | null
+          numero: string
+          recibido_por?: string | null
+          tenant_id: string
+          transportista?: string | null
+          vehiculo?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          direccion_entrega?: string | null
+          estado?: Database["public"]["Enums"]["estado_conduce"]
+          factura_id?: string | null
+          fecha?: string
+          fecha_entrega?: string | null
+          id?: string
+          motivo_anulacion?: string | null
+          notas?: string | null
+          numero?: string
+          recibido_por?: string | null
+          tenant_id?: string
+          transportista?: string | null
+          vehiculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conduces_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduces_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conduces_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "v_cuentas_por_cobrar"
+            referencedColumns: ["factura_id"]
+          },
+          {
+            foreignKeyName: "conduces_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cotizacion_lineas: {
         Row: {
           cantidad: number
@@ -501,7 +639,36 @@ export type Database = {
           total?: number
           validez_dias?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "v_cuentas_por_cobrar"
+            referencedColumns: ["factura_id"]
+          },
+          {
+            foreignKeyName: "cotizaciones_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cuentas_contables: {
         Row: {
@@ -2265,6 +2432,19 @@ export type Database = {
       }
     }
     Functions: {
+      actualizar_conduce: {
+        Args: {
+          _cliente_id: string
+          _conduce_id: string
+          _direccion_entrega: string
+          _fecha: string
+          _lineas: Json
+          _notas: string
+          _transportista: string
+          _vehiculo: string
+        }
+        Returns: string
+      }
       actualizar_cotizacion: {
         Args: {
           _cliente_id: string
@@ -2345,6 +2525,16 @@ export type Database = {
         }
         Returns: Json
       }
+      cambiar_estado_conduce: {
+        Args: {
+          _conduce_id: string
+          _estado: Database["public"]["Enums"]["estado_conduce"]
+          _fecha_entrega?: string
+          _motivo?: string
+          _recibido_por?: string
+        }
+        Returns: undefined
+      }
       cerrar_factura: {
         Args: { _factura_id: string; _motivo: string }
         Returns: undefined
@@ -2357,6 +2547,23 @@ export type Database = {
           _cuotas?: Json
           _tipo_ncf: Database["public"]["Enums"]["tipo_ncf"]
         }
+        Returns: string
+      }
+      crear_conduce: {
+        Args: {
+          _cliente_id: string
+          _direccion_entrega: string
+          _factura_id?: string
+          _fecha: string
+          _lineas: Json
+          _notas: string
+          _transportista: string
+          _vehiculo: string
+        }
+        Returns: string
+      }
+      crear_conduce_desde_factura: {
+        Args: { _factura_id: string }
         Returns: string
       }
       crear_cotizacion: {
@@ -2590,6 +2797,7 @@ export type Database = {
         | "09_otros"
       condicion_pago: "contado" | "credito"
       estado_cobro: "activo" | "anulado"
+      estado_conduce: "borrador" | "despachado" | "entregado" | "anulado"
       estado_cotizacion:
         | "borrador"
         | "enviada"
@@ -2816,6 +3024,7 @@ export const Constants = {
       ],
       condicion_pago: ["contado", "credito"],
       estado_cobro: ["activo", "anulado"],
+      estado_conduce: ["borrador", "despachado", "entregado", "anulado"],
       estado_cotizacion: [
         "borrador",
         "enviada",
