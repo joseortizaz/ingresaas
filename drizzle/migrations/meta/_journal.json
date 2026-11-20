@@ -15,6 +15,13 @@
       "when": 1791767423538,
       "tag": "0001_infraestructura_ecf_certificados",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795178135008,
+      "tag": "0002_pin_email_queue_search_path",
+      "breakpoints": true
     }
   ]
 }
